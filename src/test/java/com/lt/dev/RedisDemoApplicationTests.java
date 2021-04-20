@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -46,6 +47,9 @@ class RedisDemoApplicationTests {
     @Autowired
     RedisClient redisClient;
 
+    @Autowired
+    ReactiveRedisTemplate<String, Long> reactiveRedisTemplate;
+
     @Test
     void contextLoads() {
     }
@@ -56,6 +60,18 @@ class RedisDemoApplicationTests {
         String val = "ok";
         command.setString(key, val);
         Assert.assertEquals(command.getString(key), val);
+    }
+
+
+    @Test
+    public void testRactiveString(){
+        String key = "lt-test";
+        long val = 1234l;
+        reactiveRedisTemplate.opsForValue().set(key, val);
+        reactiveRedisTemplate.opsForValue().get(key).map(res->{
+            Assert.assertEquals(res, key);
+            return 1;
+        });
     }
 
     @Test
@@ -198,5 +214,13 @@ class RedisDemoApplicationTests {
 //        redisConnection.close();
 //        connection.close();
 //        redisClient.shutdown();
+    }
+
+    @Test
+    public void testReactiveLua(){
+
+        luaOperator.reactiveEval();
+
+
     }
 }

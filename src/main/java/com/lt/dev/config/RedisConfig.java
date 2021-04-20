@@ -5,13 +5,12 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.serializer.*;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -42,6 +41,22 @@ public class RedisConfig {
         template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         template.setConnectionFactory(redisConnectionFactory);
         return template;
+    }
+
+
+    @Bean
+    public ReactiveRedisTemplate<String, Long> reactiveRedisTemplate(
+            ReactiveRedisConnectionFactory factory) {
+
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer<Long> valueSerializer =
+                new Jackson2JsonRedisSerializer<>(Long.class);
+        RedisSerializationContext.RedisSerializationContextBuilder<String, Long> builder =
+                RedisSerializationContext.newSerializationContext(keySerializer);
+        RedisSerializationContext<String, Long> context =
+                builder.value(valueSerializer).build();
+
+        return new ReactiveRedisTemplate<>(factory, context);
     }
 
     @Bean

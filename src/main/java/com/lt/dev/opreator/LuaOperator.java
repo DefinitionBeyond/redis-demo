@@ -1,12 +1,21 @@
 package com.lt.dev.opreator;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import javax.xml.ws.Response;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -15,6 +24,8 @@ public class LuaOperator <T extends Serializable>  {
     @Autowired
     private RedisTemplate<String, Serializable> redisTemplate;
 
+    @Autowired
+    private ReactiveRedisTemplate<String, Long> reactiveRedisTemplate;
 
     public void eval(){
 
@@ -39,7 +50,39 @@ public class LuaOperator <T extends Serializable>  {
 ////        );
         System.out.println();
 
+        DefaultRedisScript redisScript = new DefaultRedisScript(lua.toString(), String.class);
+
+
     }
 
+
+    public Mono<Object> reactiveEval(){
+
+        DefaultRedisScript<List<Long>> redisScript = new DefaultRedisScript();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("/request_rate_limit.lua")));
+
+        List<String> keys = getKeys("appName");
+        List<String> scriptArgs = Arrays.asList(2 + "", 10 + "", Instant.now().getEpochSecond() + "", "1");
+        Flux<List<Long>> flux = reactiveRedisTemplate.execute(redisScript, keys, scriptArgs);
+        return flux.onErrorResume((throwable) -> {
+            return Flux.just(Arrays.asList(1L, -1L));
+        }).reduce(new ArrayList(), (longs, l) -> {
+            longs.addAll(l);
+            return longs;
+        }).map((results) -> {
+            boolean allowed = (Long)results.get(0) == 1L;
+            Long tokensLeft = (Long)results.get(1);
+//            Response response = new Response(allowed, this.getHeaders(routeConfig, tokensLeft));
+            return Mono.empty();
+        });
+
+
+    }
+    static List<String> getKeys(String id) {
+        String prefix = "request_rate_limiter.{" + id;
+        String tokenKey = prefix + "}.tokens";
+        String timestampKey = prefix + "}.timestamp";
+        return Arrays.asList(tokenKey, timestampKey);
+    }
 
 }
