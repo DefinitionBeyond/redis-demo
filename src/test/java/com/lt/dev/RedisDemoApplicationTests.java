@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -68,9 +69,12 @@ class RedisDemoApplicationTests {
         String key = "lt-test";
         long val = 1234l;
         reactiveRedisTemplate.opsForValue().set(key, val);
-        reactiveRedisTemplate.opsForValue().get(key).map(res->{
+        reactiveRedisTemplate.opsForValue().get(key).flatMap(res->{
             Assert.assertEquals(res, key);
-            return 1;
+            return Mono.justOrEmpty(1);
+        }).onErrorResume(e->{
+            e.getCause();
+            return Mono.justOrEmpty(0);
         });
     }
 

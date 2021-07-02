@@ -10,6 +10,8 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 
+import java.io.Serializable;
+
 @Configuration
 public class SubConfig {
 
@@ -23,6 +25,17 @@ public class SubConfig {
         jackson2JsonRedisSerializer.setObjectMapper(mapper);
         return jackson2JsonRedisSerializer;
     }
+
+//    @Bean
+//    public Jackson2JsonRedisSerializer<Serializable> jackson2JsonSerializer() {
+//        Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(
+//                Object.class);
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+//        jackson2JsonRedisSerializer.setObjectMapper(mapper);
+//        return jackson2JsonRedisSerializer;
+//    }
 
     @Bean
     public RedisMessageListenerContainer container(LettuceConnectionFactory connectionFactory,
